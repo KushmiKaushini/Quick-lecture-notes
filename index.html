@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quick Notes</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      height: 100vh;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 18px 24px;
+      color: #fff;
+      font-size: 1.3rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    header span {
+      font-size: 0.9rem;
+      font-weight: 400;
+      opacity: 0.9;
+    }
+
+    main {
+      flex: 1;
+      padding: 12px;
+      display: flex;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 260px;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .sidebar h3 {
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+      color: #444;
+    }
+
+    .note-item {
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      background: #f3f4f6;
+    }
+
+    .note-item:hover {
+      background: #e0e7ff;
+    }
+
+    /* EDITOR */
+    .editor-card {
+      flex: 1;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* JOURNAL PROMPT */
+    .journal-prompt {
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #e0e7ff, #f5f3ff);
+      color: #444;
+      font-size: 0.9rem;
+      font-style: italic;
+      flex-shrink: 0;
+    }
+
+    textarea {
+      flex: 1;
+      width: 100%;
+      border: none;
+      resize: none;
+      outline: none;
+      font-size: 18px;
+      line-height: 1.75;
+      color: #333;
+      padding: 6px;
+      font-family: "Segoe UI", system-ui, sans-serif;
+    }
+
+    textarea::placeholder {
+      color: #aaa;
+    }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 10px;
+      font-size: 0.85rem;
+      color: #666;
+      flex-shrink: 0;
+    }
+
+    .status {
+      color: #4caf50;
+      font-weight: 500;
+    }
+
+    .badge {
+      background: linear-gradient(135deg, #43cea2, #185a9d);
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+    }
+
+    .save-btn {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      margin-right: 6px;
+    }
+
+    @media (max-width: 900px) {
+      .sidebar {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  ✍️ Quick Notes
+</header>
+
+<main>
+
+  <div class="sidebar">
+    <h3>Saved Notes</h3>
+    <div id="noteList"></div>
+  </div>
+
+  <div class="editor-card">
+
+    <!-- JOURNAL PROMPT (TOP ONLY) -->
+    <div class="journal-prompt">
+      Start writing your lecture notes here…
+    </div>
+
+    <textarea
+      id="notes"
+      placeholder="Write freely. Your notes are saved automatically."
+      autofocus
+    ></textarea>
+
+    <footer>
+      <span class="status" id="status"></span>
+      <div>
+        <button class="save-btn" id="manualSave">Save Note</button>
+        <span class="badge">Auto Saved</span>
+      </div>
+    </footer>
+  </div>
+
+</main>
+
+<script>
+  const notes = document.getElementById("notes");
+  const status = document.getElementById("status");
+  const noteList = document.getElementById("noteList");
+  const manualSaveBtn = document.getElementById("manualSave");
+
+  const STORAGE_KEY = "quickNotes";
+  const LIST_KEY = "savedNotesList";
+
+  function showStatus(text) {
+    status.textContent = text;
+    setTimeout(() => status.textContent = "", 1200);
+  }
+
+  function loadNotes() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) notes.value = saved;
+    renderNoteList();
+  }
+
+  function saveNotes() {
+    localStorage.setItem(STORAGE_KEY, notes.value);
+    showStatus("Saved");
+  }
+
+  function manualSave() {
+    if (!notes.value.trim()) return;
+
+    const list = JSON.parse(localStorage.getItem(LIST_KEY)) || [];
+    list.unshift({ content: notes.value, time: new Date().toLocaleString() });
+    localStorage.setItem(LIST_KEY, JSON.stringify(list));
+    renderNoteList();
+    showStatus("Note saved");
+  }
+
+  function renderNoteList() {
+    const list = JSON.parse(localStorage.getItem(LIST_KEY)) || [];
+    noteList.innerHTML = "";
+    list.forEach(note => {
+      const div = document.createElement("div");
+      div.className = "note-item";
+      div.textContent = note.time;
+      div.onclick = () => {
+        notes.value = note.content;
+        saveNotes();
+      };
+      noteList.appendChild(div);
+    });
+  }
+
+  notes.addEventListener("input", saveNotes);
+  manualSaveBtn.addEventListener("click", manualSave);
+  document.addEventListener("DOMContentLoaded", loadNotes);
+</script>
+
+</body>
+</html>
